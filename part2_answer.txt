@@ -1,0 +1,15 @@
+To scale the coding assignment auto-review tool to handle 100+ review requests per minute and large
+repositories, I would implement a distributed, microservices-based architecture using containers
+with multiple API keys(e.g., Docker) orchestrated by Kubernetes for horizontal scaling.
+A message queue (e.g., RabbitMQ or Salary) would handle review request spikes, decoupling processing
+from incoming requests to ensure system stability.
+Also sharding can significantly help in scaling the system by distributing the load across multiple
+servers or databases.
+
+For large repositories, I would store file metadata in a database like PostgreSQL, caching
+frequently accessed data with Redis to speed up responses.
+
+To handle increased API usage (OpenAI, GitHub), I'd implement API rate-limiting, request batching,
+and smart retries, while also caching responses to minimize redundant API calls.
+Also utilizing cost-effective cloud services (e.g., AWS Lambda or Google Cloud Functions)
+would help manage costs.

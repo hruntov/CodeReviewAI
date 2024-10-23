@@ -5,6 +5,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    networks:
+      - mynetwork
     ports:
       - "8000:8000"
     environment:
@@ -14,3 +16,20 @@ services:
     volumes:
       - .:/CodeReviewAI
     command: ["bash", "/CodeReviewAI/run_fastapi.sh"]
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    networks:
+      - mynetwork
+    ports:
+      - 6379:6379
+    volumes:
+      - redis_data:/data
+
+networks:
+  mynetwork:
+    driver: bridge
+
+volumes:
+  redis_data:
