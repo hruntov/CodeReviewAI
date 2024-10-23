@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - EDEN_API_KEY=${EDEN_API_KEY}
+      - GITHUB_API_TOKEN=${GITHUB_API_TOKEN}
+      - LOG_FILE=/CodeReviewAI/logs/log.log
+    volumes:
+      - .:/CodeReviewAI
+    command: ["bash", "/CodeReviewAI/run_fastapi.sh"]
