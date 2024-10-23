@@ -73,3 +73,4 @@ async def review_code(request: ReviewRequest):
     """
     log_info(f"Received review request for repository: {request.github_repo_url}")
     git_hub_fetcher = GitHubRepositoryFetcher()
+    repo_files = await git_hub_fetcher.fetch_repo_contents(request.github_repo_url)
