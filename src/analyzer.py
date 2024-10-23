@@ -36,3 +36,40 @@ class CodeAnalyzer:
         self.prompt = self.make_prompt(files, assignment_description, candidate_level)
         self.retries = 3
         self.backoff_factor = 2
+
+    def make_prompt(self, files: List[Any], assignment_description: str,
+                    candidate_level: str) -> Dict[str, Any]:
+        """
+        Constructs the prompt to be sent to the AI service based on the files, assignment
+        description, and candidate level.
+
+        Args:
+            files (List[Any]): List of files from the GitHub repository.
+            assignment_description (str): Description of the coding assignment.
+            candidate_level (str): The experience level of the candidate (Junior, Middle, Senior).
+
+        Returns:
+            Dict[str, Any]: Dictionary containing the headers and payload for the AI request.
+
+        """
+        prompt = f"""
+        You are analyzing code for a coding assignment. The level is {candidate_level}.
+        The assignment description is: {assignment_description}
+
+        These are the files:
+        {files}
+
+        Make sure to include the following separate sections in your response:
+        - Rating: Provide a rating for the code.
+        - Conclusion: Summarize your findings and provide a conclusion.
+        """
+        payload = {
+            "providers": "openai",
+            "text": f"{prompt}{assignment_description} ",
+            "chatbot_global_action": "Act as an assistant",
+            "previous_history": [],
+            "temperature": 0.25,
+            "max_tokens": 3000,
+            "fallback_providers": ""
+        }
+        return {"headers": self.headers, "payload": payload}
