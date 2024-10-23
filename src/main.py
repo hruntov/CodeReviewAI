@@ -71,8 +71,22 @@ async def review_code(request: ReviewRequest):
         dict: A dictionary with the code review results.
 
     """
-    log_info(f"Received review request for repository: {request.github_repo_url}")
-    git_hub_fetcher = GitHubRepositoryFetcher()
-    repo_files = await git_hub_fetcher.fetch_repo_contents(request.github_repo_url)
-
-
+    try:
+        log_info(f"Received review request for repository: {request.github_repo_url}")
+        git_hub_fetcher = GitHubRepositoryFetcher()
+        repo_files = await git_hub_fetcher.fetch_repo_contents(request.github_repo_url)
+        codeAnalyzer = CodeAnalyzer(repo_files, request.assignment_description,
+                                    request.candidate_level)
+        review = await codeAnalyzer.start()
+        log_info("Review completed successfully.")
+        return {"review": review}
+    except HTTPException as http_exc:
+        log_error(f"HTTPException: {http_exc.detail}")
+        raise http_exc
+    except ValueError as val_exc:
+        log_error(f"ValueError: {str(val_exc)}")
+        raise HTTPException(status_code=400,
+                            detail=f"Invalid input: {str(val_exc)}.")
+    except Exception as e:
+        log_error(f"Internal server error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

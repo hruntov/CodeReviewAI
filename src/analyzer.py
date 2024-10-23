@@ -1,6 +1,15 @@
+import asyncio
+import json
 import os
 import re
-from typing import Any, List
+import time
+from typing import Any, Dict, List
+
+import httpx
+import requests
+from fastapi import HTTPException
+
+from src.logger import log_error, log_warning
 
 
 class CodeAnalyzer:
@@ -125,3 +134,65 @@ class CodeAnalyzer:
             print("match - ", match)
             return match.group(1).strip()
         return f"No {section_name.lower()} available"
+
+
+    async def start(self) -> Dict[str, Any]:
+        """
+        Starts the code analysis by sending requests to the AI service. Retries in case of
+        rate-limiting.
+
+        Returns:
+            Dict[str, Any]: Parsed result of the AI's response.
+
+        """
+        result = None
+        for attempt in range(self.retries):
+            try:
+                result = await self._send_request()
+                if result:
+                    break
+            except HTTPException as e:
+                if e.status_code == 429 and attempt < self.retries - 1:
+                    log_warning("AI service rate limit exceeded. Retrying...")
+                    await asyncio.sleep(self.backoff_factor ** attempt)
+                else:
+                    raise e
+        return result
+
+    async def _send_request(self) -> Dict[str, Any]:
+        """
+        Sends a request to the AI service and handles its response, including rate-limiting and
+        errors.
+
+        Returns:
+            Dict[str, Any]: Parsed result of the AI's response.
+
+        """
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(self.url_ai, json=self.prompt["payload"],
+                                             headers=self.prompt["headers"])
+                if response.status_code == 200:
+                    print(response.text)
+                    result = json.loads(response.text)
+                    return self.parse_result(result, self.file_names)
+                elif response.status_code == 429:
+                    log_warning("AI service rate limit exceeded. Retrying...")
+                    time.sleep(self.backoff_factor ** 2)
+                    raise HTTPException(status_code=429, detail="AI service rate limit exceeded.")
+                else:
+                    log_error(f"AI service returned an error: {response.status_code} - "
+                              f"{response.text}")
+                    raise HTTPException(status_code=response.status_code, detail=response.text)
+            except requests.RequestException as e:
+                log_error(f"Failed to communicate with the AI service: {str(e)}")
+                time.sleep(self.backoff_factor ** 2)
+                raise HTTPException(status_code=502,
+                                    detail=f"Failed to communicate with the AI service: {str(e)}")
+            except json.JSONDecodeError as e:
+                log_error(f"Invalid response format from AI service: {str(e)}")
+                raise HTTPException(status_code=500,
+                                    detail=f"Invalid response format from AI service: {str(e)}")
+            except Exception as e:
+                log_error(f"Error analyzing code: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Error analyzing code: {str(e)}")
