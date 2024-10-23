@@ -1,4 +1,13 @@
+from typing import Literal
+
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, HttpUrl, constr, field_validator
+
+from src.analyzer import CodeAnalyzer
+from src.logger import log_error, log_info
+from src.repo_fetcher import GitHubRepositoryFetcher
+
+app = FastAPI()
 
 
 class ReviewRequest(BaseModel):
@@ -47,3 +56,20 @@ class ReviewRequest(BaseModel):
         if not str(value).startswith("https://github.com/"):
             raise ValueError('GitHub repository URL must start with "https://github.com/".')
         return value
+
+
+@app.post("/review")
+async def review_code(request: ReviewRequest):
+    """
+    Endpoint to review the code in a GitHub repository.
+
+    Args:
+        request (ReviewRequest): The request containing the assignment description, GitHub URL,
+                                 and candidate level.
+
+    Returns:
+        dict: A dictionary with the code review results.
+
+    """
+    log_info(f"Received review request for repository: {request.github_repo_url}")
+    git_hub_fetcher = GitHubRepositoryFetcher()
