@@ -25,6 +25,7 @@ CodeReviewAI is a FastAPI-based application that reviews code in GitHub reposito
     ```env
     EDEN_API_KEY=your_eden_api_key
     GITHUB_API_TOKEN=your_github_api_token
+    LOG_FILE=path/to/your/logfile
     ```
 
 ### Running the Application
