@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Any, List
 
 
@@ -73,3 +74,54 @@ class CodeAnalyzer:
             "fallback_providers": ""
         }
         return {"headers": self.headers, "payload": payload}
+
+
+    def parse_result(self, result: Dict[str, Any], file_names: List[str]) -> Dict[str, Any]:
+        """
+        Parses the AI service response and extracts key sections such as rating and conclusion.
+
+        Args:
+            result (Dict[str, Any]): The raw result from the AI service.
+            file_names (List[str]): List of file names to include in the final report.
+
+        Returns:
+            Dict[str, Any]: A dictionary containing the parsed results including downsides/comments,
+                            rating, and conclusion.
+
+        """
+        openai_data = result.get('openai', {})
+        generated_text = openai_data.get('generated_text', 'No suggestion available')
+
+        rating = self.extract_section(generated_text, "Rating")
+        conclusion = self.extract_section(generated_text, "Conclusion")
+
+        parsed_result = {
+            "Found files": file_names,
+            "Downsides/Comments": generated_text,
+            "Rating": rating,
+            "Conclusion": conclusion
+        }
+
+        return parsed_result
+
+    def extract_section(self, text: str, section_name: str) -> str:
+        """
+        Extracts a specific section (like Rating or Conclusion) from the AI response text using
+        regular expressions.
+
+        Args:
+            text (str): The AI-generated text to parse.
+            section_name (str): The section name to extract (e.g., "Rating", "Conclusion").
+
+        Returns:
+            str: The extracted section or a default message if not found.
+
+        """
+        # TODO: Optimize the regular expesion
+        pattern = re.compile(rf"(?:###?\s*|\*\*|-\s*){section_name}[:*]?\s*(.*?)(?=\n(?:###?|\*\*|-\s*)|\Z)", re.DOTALL)
+
+        match = pattern.search(text)
+        if match:
+            print("match - ", match)
+            return match.group(1).strip()
+        return f"No {section_name.lower()} available"
